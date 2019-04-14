@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Memorizing Penguins</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+<canvas id="myCanvas" width="800" height="540"></canvas>
+<script>
+
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
+var WIDTH = 95;
+
+// Determine number of rows and columns for memory game. 
+// Note: Number of pairs cannot exceed the number of 
+// images in the library
+var NUM_COLS = 5;
+var NUM_ROWS = 4;
+var NUM_PAIRS = Math.min((NUM_COLS * NUM_ROWS) / 2);
+var tiles = []; // Variable holding tiles in game
+
+// Creates a tile, default set to face down.
+var Tile = function(x, y, face) {
+    this.x = x;
+    this.y = y;
+    this.width = WIDTH;
+    this.face = face;
+    this.isFaceUp = false;
+    this.isMatch = false;
+};
+
+// Draws an image of the specified size at the
+// given location
+function createImage(x, y, imageName) {
+    var image = new Image();
+    image.src = imageName;
+    image.onload = function() {
+        ctx.drawImage(image, x, y, WIDTH - 1 , WIDTH - 1)
+    }
+}
+
+// Gets the name of an image
+function getImage(name) {
+    return name + ".png";
+}
+
+// Draws a tile, depending on its status (face up or face down)
+Tile.prototype.draw = function() {
+    if (this.isFaceUp) {
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.width + 1, this.width + 1);
+        ctx.fillStyle = "white";
+        ctx.fill();
+        ctx.closePath();
+        createImage(this.x +1 , this.y + 1 , this.face);
+    } else {
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.width + 1, this.width + 1);
+        ctx.fillStyle = "white";
+        ctx.fill();
+        ctx.closePath();
+        createImage(this.x + 1, this.y + 1, "Tile.png");
+    }
+};
+
+// Returns true if a given Tile is currently under the mouse
+Tile.prototype.isUnderMouse = function(x, y) {
+    return (x >= this.x && x <= this.x + this.width &&
+            y >= this.y && y <= this.y + this.width);
+};
+
+// Creates a new game board
+function newBoard() {
+	tiles.length = 0;
+    matchedTiles = 0;
+
+    // Create an array of the images available to choose from
+    var faces = [
+        getImage("Penguin1"),
+        getImage("Penguin2"),
+        getImage("Penguin3"),
+        getImage("Penguin4"),
+        getImage("Penguin5"),
+        getImage("Penguin6"),
+        getImage("Penguin7"),
+        getImage("Penguin8"),
+        getImage("Penguin9"),
+        getImage("Penguin10"),
+        getImage("Penguin11"),
+        getImage("Penguin12"),
+        getImage("Penguin13"),
+    ];
+
+    function getRndInteger(max) {
+        return Math.floor(Math.random() * max);
+    }
+
+    // Select the random images to appear in this round
+    var selected = [];
+    for (var i = 0; i < NUM_PAIRS; ++i) {
+        // Randomly pick one from the array of faces
+        var randomInd = getRndInteger(faces.length);
+        var face = faces[randomInd];
+        // Push 2 copies onto array
+        selected.push(face);
+        selected.push(face);
+        // Remove from faces so we don't re-pick faces
+        faces.splice(randomInd, 1);
+    }
+
+    var shuffleArray = function(array) {
+        var counter = array.length;
+
+        // While there are elements in the  array
+        while (counter > 0) {
+            // Pick a random index
+            var ind = Math.floor(Math.random() * counter);
+            // Decrease counter by 1
+            counter--;
+            // And swap the last element with it
+            var temp = array[counter];
+            array[counter] = array[ind];
+            array[ind] = temp;
+        }
+    };
+
+    shuffleArray(selected);
+
+    var index = 0;
+    var imagePos = [];
+
+    // Create the array of tiles at appropriate positions
+    for (var i = 0; i < NUM_COLS; i++) {
+        for (var j = 0; j < NUM_ROWS; j++) {
+            var tileX = i * 100 + 155;
+            var tileY = j * 100 + 60;
+            var tileFace = selected.pop();
+            tiles.push(new Tile(tileX, tileY, tileFace));
+            imagePos[index] = [];
+            imagePos[index][0] = tileX + 1;
+            imagePos[index][1] = tileY + 1;
+            index++;
+        }
+    }
+
+    for (var i = 0; i < tiles.length; ++i) {
+        tiles[i].isFaceUp = false;
+        tiles[i].draw();
+    }
+}
+
+newBoard();
+
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+}
+
+var flippedTiles = [];
+var matchedTiles = 0;
+var repeat = "Y";
+
+// Gets the position of the mouse when clicked.
+function mouseClicked(event) {
+    var pos = getMousePos(canvas, event);
+    for (var i = 0; i < tiles.length; ++i) {
+        var tile = tiles[i];
+        if (tile.isUnderMouse(pos.x, pos.y)) {
+            handleTileClick(tile);
+        }
+    }
+}
+
+// Handles the next action when the mouse is
+// clicked, depending on what tile is clicked.
+function handleTileClick(tile) {
+    console.log('Clicked', tile);
+
+    if (tile.isMatch) return;
+
+    // Second tile click
+    if (flippedTiles.length < 2 && !tile.isFaceUp) {
+        tile.isFaceUp = true;
+        tile.draw();
+        flippedTiles.push(tile);
+    }
+
+    // If there are two tiles flipped over, check if they are a match
+    if (flippedTiles.length === 2) {
+        if (flippedTiles[0].face === flippedTiles[1].face) {
+            // then we have a match!
+            flippedTiles[0].isMatch = true;
+            flippedTiles[1].isMatch = true;
+
+            // Empty an array
+            flippedTiles.length = 0;
+            matchedTiles += 2;
+
+            if (matchedTiles === tiles.length) {
+                setTimeout(function repeat() {
+					var repeat;
+                	while (repeat !== 'Y' && repeat !== 'N') {
+                    	repeat = prompt("Congrats, you won! Would " +
+                                        "you like to repeat (Y/N)? ");
+                	}
+
+	                if (repeat === 'Y') {
+	                    setTimeout(newBoard(), 700);
+	                }
+            	}, 200);
+            } 
+
+        }
+        // If they're not a match, flip them back and remove from 
+        // flipped tiles
+        else {
+            setTimeout(function flip2Back() {
+                var tile1 = flippedTiles[0];
+                var tile2 = flippedTiles[1];
+                tile1.isFaceUp = false;
+                tile2.isFaceUp = false;
+                tile1.draw();
+                tile2.draw();
+                flippedTiles.pop();
+                flippedTiles.pop();
+            }, 700);
+        }
+    }
+}
+
+document.addEventListener("click", mouseClicked);
+
+</script>
+</body>
+</html>
