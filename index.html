@@ -46,7 +46,7 @@ function createImage(x, y, imageName) {
 
 // Gets the name of an image
 function getImage(name) {
-    return "/" + name + ".png";
+    return name + ".png";
 }
 
 // Draws a tile, depending on its status (face up or face down)
@@ -64,7 +64,7 @@ Tile.prototype.draw = function() {
         ctx.fillStyle = "white";
         ctx.fill();
         ctx.closePath();
-        createImage(this.x + 1, this.y + 1, "/Tile.png");
+        createImage(this.x + 1, this.y + 1, "Tile.png");
     }
 };
 
